@@ -1,0 +1,14 @@
+#!/bin/bash
+#$ -q gpu.q
+#$ -N k-nn
+#$ -l mem_req=20G
+#$ -l h_vmem=20G
+#$ -o /meleze/data1/ptrutman/Reconstruction/logs/k-nn.out
+#$ -e /meleze/data1/ptrutman/Reconstruction/logs/k-nn.err
+#$ -wd /meleze/data1/ptrutman/Reconstruction/deepag/bin/deepag/
+#$ -m eba
+#$ -M pavel.trutman@inria.fr
+#$ -pe serial 1
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-7.0/lib64:/usr/local/cuda-7.0/lib
+/nas/matlab-2014b/bin/matlab -nodisplay -nosplash -nodesktop -r "k_nn_GPU;exit;"

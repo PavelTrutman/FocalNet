@@ -1,0 +1,8 @@
+# Matlab
+
+*.m~
+*.mex*
+*.asv
+
+# Folder with logs
+logs/

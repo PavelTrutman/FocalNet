@@ -1,0 +1,3 @@
+[submodule "deepag/bin/lib/matconvnet"]
+	path = deepag/bin/lib/matconvnet
+	url = https://github.com/vlfeat/matconvnet.git
