@@ -343,15 +343,18 @@ function deepag_parallel(pst, pdAllt, datasett)
     fSize = 2;
     normSize = 2;
     features = cell(1, 3);
+    correspondences = cell(1, 3);
     pool = gcp();
     fprintf('%s: Preparing data: \n',ps.Data); tic;
     camsWrap = WorkerObjWrapper(cellfun(@camU, pdAll.C.cam, 'UniformOutput', false));
     for i = 1:3
       repS = adprintf({}, ['Preparing dataset ' int2str(i), ': ']);
-      dataset{i}.cameraPairs = cell(1, cameraPairsNum);
       features{i}.coefs = zeros(coefsSize, cameraPairsNum*perCameraPair);
       features{i}.f = zeros(fSize, cameraPairsNum*perCameraPair);
       features{i}.norm = zeros(normSize, cameraPairsNum*perCameraPair);
+      correspondences{i}.u = zeros(pointsNum*4, cameraPairsNum*perCameraPair);
+      correspondences{i}.f = zeros(fSize, cameraPairsNum*perCameraPair);
+      correspondences{i}.norm = zeros(normSize, cameraPairsNum*perCameraPair);
       results(cameraPairsNum) = parallel.FevalFuture(); %#ok<AGROW>
       datasetWrap = WorkerObjWrapper(dataset{i}.cam);
       j = 1;
@@ -363,23 +366,26 @@ function deepag_parallel(pst, pdAllt, datasett)
           repS = rmprintf(repS);
           continue;
         end
-        results(j) = parfeval(pool, @preparePar, 2, r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize);
+        results(j) = parfeval(pool, @preparePar, 3, r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize);
         repS = rmprintf(repS);
         j = j + 1;
       end
       j = 1;
       while j <= cameraPairsNum
         repS = adprintf(repS, ['camera pair ', int2str(j), '/', int2str(cameraPairsNum)]);
-        [jj, coefs, rr] = fetchNext(results);
+        [jj, coefs, u, rr] = fetchNext(results);
         if any(isnan(coefs))
           r = randperm(size(dataset{i}.cam, 2), 2);
-          results(jj) = parfeval(pool, @preparePar, 2, r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize);
+          results(jj) = parfeval(pool, @preparePar, 3, r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize);
           repS = rmprintf(repS);
           continue;
         end
         features{i}.coefs(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = coefs;
         features{i}.f(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{rr(1)}.cix}.f; pdAll.C.cam{dataset{i}.cam{rr(2)}.cix}.f], 1, perCameraPair);
         features{i}.norm(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{rr(1)}.cix}.normFactor; pdAll.C.cam{dataset{i}.cam{rr(2)}.cix}.normFactor], 1, perCameraPair);
+        correspondences{i}.u(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = u;
+        correspondences{i}.f(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{rr(1)}.cix}.f; pdAll.C.cam{dataset{i}.cam{rr(2)}.cix}.f], 1, perCameraPair);
+        correspondences{i}.norm(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{rr(1)}.cix}.normFactor; pdAll.C.cam{dataset{i}.cam{rr(2)}.cix}.normFactor], 1, perCameraPair);
         repS = rmprintf(repS);
         j = j + 1;
       end
@@ -400,6 +406,8 @@ function deepag_parallel(pst, pdAllt, datasett)
     clear repS i j k l cameraPairsNum minPointsInCommon pointsNum perCameraPair coefsSize fSize normSize r XmaskCommon idx1 idx2 rk coefs X_std keep;
     
     assignin('base', 'features', features);
+    assignin('base', 'correspondences', correspondences);
+    
     % save feature vectors into file
     fn = fullfile(pc.dataPath,ps.Data, 'features.mat');
     fprintf(['Saving feature vectors into ', fn, '\n']);
@@ -430,6 +438,10 @@ function deepag_parallel(pst, pdAllt, datasett)
     tst_norm = features{1}.norm; %#ok<NASGU>
     save(fn, 'tst_norm', '-append');
     clear tst_norm;
+    fn = fullfile(pc.dataPath,ps.Data, 'correspondences.mat');
+    fprintf(['Saving correspondences into ', fn, '\n']);
+    save(fn, 'correspondences', '-v7.3');
+    
     fprintf(' ... done %s.\n',sec2hms(toc));
     
   end
@@ -487,7 +499,7 @@ function [u] = camU(cam)
 
 end
 
-function [coefsOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize)
+function [coefsOut, uOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize)
   dataset = datasetWrap.Value;
   cams = camsWrap.Value;
   datasetCam1 = dataset{r(1)};
@@ -503,6 +515,7 @@ function [coefsOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, poi
 
   k = 1;
   coefsOut = zeros(coefsSize, perCameraPair);
+  uOut = zeros(pointsNum*4, perCameraPair);
   while k <= perCameraPair
     rk = randperm(size(XmaskCommon, 2), pointsNum);
     coefs = two_focal(u1(:, datasetCam1.umask(idx1(rk)))', u2(:, datasetCam2.umask(idx2(rk)))');
@@ -510,6 +523,7 @@ function [coefsOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, poi
       continue;
     end
     coefsOut(:, k) = coefs;
+    uOut(:, k) = [reshape(u1(:, datasetCam1.umask(idx1(rk)))', [], 1); reshape(u2(:, datasetCam2.umask(idx2(rk)))', [], 1)];
     k = k + 1;
   end
 end
