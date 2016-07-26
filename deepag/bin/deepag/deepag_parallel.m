@@ -420,21 +420,24 @@ function deepag_parallel(pst, pdAllt, datasett)
   assignin('base', 'ps', ps);
   assignin('base', 'pdAll', pdAll);
   assignin('base', 'dataset', dataset);
-  
+
 end
 
+%% Functions
 
+% returns coordinates of correspondences from cam
 function [u] = camU(cam)
-  
+
   if isempty(cam)
     u = [];
   else
     u = cam.u;
   end
-
+  
 end
 
-
+% function used for parallel computing
+% for two cameras returns feature vector and coordinates of correspondences
 function [coefsOut, uOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize)
   dataset = datasetWrap.Value;
   cams = camsWrap.Value;

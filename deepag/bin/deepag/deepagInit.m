@@ -4,11 +4,18 @@
 
 %close all
 drawnow
+
 %% Base path
-pw = pwd; cd(fullfile('..','..')); pc.basePath = pwd; cd(pw); clear('pw');
+pw = pwd;
+cd(fullfile('..','..'));
+pc.basePath = pwd;
+cd(pw);
+clear('pw');
+
 %%
 pc.dataPath = fullfile(pc.basePath,'data');
 run(fullfile(pc.dataPath,'deepagparini.m')); % default parameters
+
 % data specific paramaters
 fn = {fullfile(pc.dataPath,ps.Data,'deepagpar.m')};
 for i=1:numel(fn)
@@ -25,9 +32,8 @@ for i=1:numel(fn)
         fclose(fid);
     end
 end
-%
+
 pc.clrs = ['k','b','g','r','m','c']; % colors
 pc.lsts = {'.-','s-','.:','.-.','-','--'}; % line styles
-%
-clear fid fn i s pw 
 
+clear fid fn i s pw 
