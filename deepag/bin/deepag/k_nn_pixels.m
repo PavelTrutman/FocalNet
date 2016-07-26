@@ -37,8 +37,8 @@ function k_nn_pixels()
     
     dist = Inf(size(u_tr, 2), 1);
     for k = 1:size(u_tr, 2)
-      u1_tr = [u_tr(1:7, i)'; u_tr(8:14, i)'];
-      u2_tr = [u_tr(15:21, i)'; u_tr(22:28, i)'];
+      u1_tr = [u_tr(1:7, k)'; u_tr(8:14, k)'];
+      u2_tr = [u_tr(15:21, k)'; u_tr(22:28, k)'];
       
       order1 = zeros(7, 1);
       swap = false;
@@ -114,7 +114,7 @@ function k_nn_pixels()
         [u2_tr, u1_tr] = deal(u1_tr, u2_tr);
       end
         
-      dist(k) = max([sum((u1_tr(:, order1) - u1_val).^2, 2), sum((u2_tr(:, order2) - u2_val).^2, 2)]);
+      dist(k) = max([sum((u1_tr(:, order1) - u1_val).^2), sum((u2_tr(:, order2) - u2_val).^2)]);
       
     end
     [m, idx] = min(dist);
