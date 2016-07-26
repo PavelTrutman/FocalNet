@@ -21,12 +21,12 @@
 
 % T. Pajdla, pajdla@neovision.cz
 % 24 Oct 2005
-function ps = pargui(ps,gsz,xname,fname)
+function ps = pargui(ps ,gsz, xname, fname)
 
-    if nargin<4
+    if nargin < 3
         xname = [];
     end
-    if nargin<5
+    if nargin < 4
         fname = xname;
     end   
     
@@ -97,7 +97,7 @@ function ps = pargui(ps,gsz,xname,fname)
         psg.par.xb.h   = uicontrol('Style','pushbutton','string',xname,'position',psg.par.xb.pos,'BackgroundColor','red','HorizontalAlignment','center');
         set(psg.par.xb.h,'fontname','Arial');    
         %set(psg.par.xb.h,'Callback',sprintf('GuiExec=1;%s;',xname));
-        set(psg.par.xb.h,'Callback',[xname '(ps, pdAll);']);
+        set(psg.par.xb.h,'Callback',[xname '(ps, pdAll, dataset);']);
     end
     % parameter fields
     for i=1:min([length(psg.par.fn) length(psg.par.gx)]);

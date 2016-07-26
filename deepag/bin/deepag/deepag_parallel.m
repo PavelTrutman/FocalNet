@@ -37,7 +37,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     gf(1) = subfig(4,9,1); % GUI window
     % gf(1) = subfig([1 50 763 127],figure); % GUI window
     set(gcf,'closerequestfcn',[]);     % make GUI unclosable
-    ps = pargui(ps, [size(fieldnames(ps),1)+1 1],'deepag','deepag');   % create the GUI 
+    ps = pargui(ps, [size(fieldnames(ps),1)+1 1], 'deepag_parallel');   % create the GUI 
     parcutscreen(gf(1));               % shrink the screen
     clear gf
     %
@@ -166,79 +166,45 @@ function deepag_parallel(pst, pdAllt, datasett)
       plot(boundary{i}(1, :), boundary{i}(2, :), ['-' pc.clrs(i + 1)]); %#ok<USENS>
       dataset{i}.Xmask = find(inpolygon(x(1, :), x(2, :), boundary{i}(1, :), boundary{i}(2, :)));
       fprintf(['Points in dataset', int2str(i), ': ', int2str(size(dataset{i}.Xmask, 2)), '\n']);
-      %dataset{i}.cam = cell(1, size(pdAll.C.inliers, 2));
     end
     drawnow;
     clear i x boundary;
     
     % divide cameras
-    %try
-    %  pool = gcp();
-    %catch
-    %  fprintf('Parallel Computing Toolbox not used.\n');
-    %end
     camDatasetIdx = zeros(1, size(pdAll.C.cam, 2));
     camDataset = repmat(struct('Xmask', [], 'umask', [], 'cix', 0), 1, size(pdAll.C.cam, 2));
-    inliers = pdAll.C.inliers;
-    cams = pdAll.C.cam;    
-    %if ~exist('pool', 'var')
-      for i = 1:size(cams, 2)
-        if ~any(inliers == i)
-          continue;
-        end
-        repS = adprintf({}, ['Parsing camera ' int2str(i), '/', int2str(size(cams, 2))]);
-        camXmask = cams{i}.Xmask;
+    for i = pdAll.C.inliers
+      repS = adprintf({}, ['Parsing camera ' int2str(i), '/', int2str(size(pdAll.C.cam, 2))]);
+      camXmask = pdAll.C.cam{i}.Xmask;
       
-        Xmask = cell(1, 3);
-        idx = cell(1, 3);
-        [Xmask{1}, idx{1}, ~] = intersect(camXmask, dataset{1}.Xmask);
-        [Xmask{2}, idx{2}, ~] = intersect(camXmask, dataset{2}.Xmask);
-        [Xmask{3}, idx{3}, ~] = intersect(camXmask, dataset{3}.Xmask);
-        [~, idataset] = max([size(Xmask{1}, 2), size(Xmask{2}, 2), size(Xmask{3}, 2)]);
+      Xmask = cell(1, 3);
+      idx = cell(1, 3);
+      [Xmask{1}, idx{1}, ~] = intersect(camXmask, dataset{1}.Xmask);
+      [Xmask{2}, idx{2}, ~] = intersect(camXmask, dataset{2}.Xmask);
+      [Xmask{3}, idx{3}, ~] = intersect(camXmask, dataset{3}.Xmask);
+      [~, idataset] = max([size(Xmask{1}, 2), size(Xmask{2}, 2), size(Xmask{3}, 2)]);
       
-        % skip cameras that can see points from other datasets
-        if (1 ~= idataset) && (size(Xmask{1}, 2) > 0)
-          rmprintf(repS);
-          continue;
-        end
-        if (2 ~= idataset) && (size(Xmask{2}, 2) > 0)
-          rmprintf(repS);
-          continue;
-        end
-        if (3 ~= idataset) && (size(Xmask{3}, 2) > 0)
-          rmprintf(repS);
-          continue;
-        end
-      
-        camDataset(i).Xmask = Xmask{idataset};
-        camDataset(i).umask = idx{idataset}';
-        camDataset(i).cix = i;
-        camDatasetIdx(i) = idataset;
+      % skip cameras that can see points from other datasets
+      if (1 ~= idataset) && (size(Xmask{1}, 2) > 0)
         rmprintf(repS);
+        continue;
       end
-    %{
-    else
-      % paraller computing
-      results(size(inliers, 2)) = parallel.FevalFuture();
-      wrapper = WorkerObjWrapper(dataset);
-      j = 1;
-      for i = inliers
-        repS = adprintf({}, ['Parsing camera ' int2str(i), '/', int2str(size(cams, 2))]);
-        results(j) = parfeval(pool, @dividePar, 3, cams{i}.Xmask, wrapper);
-        j = j + 1;
-        repS = rmprintf(repS);
+      if (2 ~= idataset) && (size(Xmask{2}, 2) > 0)
+        rmprintf(repS);
+        continue;
       end
-      for i = 1:size(inliers, 2)
-        repS = adprintf({}, ['Parsing camera ' int2str(i), '/', int2str(size(cams, 2))]);
-        [cInlier, camDataset(i).Xmask, camDataset(i).umask, camDatasetIdx(i)] = fetchNext(results);
-        camDataset(i).cix = inliers(cInlier);
-        repS = rmprintf(repS);
+      if (3 ~= idataset) && (size(Xmask{3}, 2) > 0)
+        rmprintf(repS);
+        continue;
       end
-      delete(wrapper);
-      assignin('base', 'results', results);
-      clear results;
+      
+      camDataset(i).Xmask = Xmask{idataset};
+      camDataset(i).umask = idx{idataset}';
+      camDataset(i).cix = i;
+      camDatasetIdx(i) = idataset;
+      rmprintf(repS);
     end
-    %}
+
     clear inliers cams;
     for i = 1:3
       dataset{i}.cam = num2cell(camDataset(camDatasetIdx == i));
@@ -438,9 +404,14 @@ function deepag_parallel(pst, pdAllt, datasett)
     tst_norm = features{1}.norm; %#ok<NASGU>
     save(fn, 'tst_norm', '-append');
     clear tst_norm;
+    
     fn = fullfile(pc.dataPath,ps.Data, 'correspondences.mat');
     fprintf(['Saving correspondences into ', fn, '\n']);
-    save(fn, 'correspondences', '-v7.3');
+    corr_tr = correspondences{3}; %#ok<NASGU>
+    corr_val = correspondences{2}; %#ok<NASGU>
+    corr_tst = correspondences{1}; %#ok<NASGU>
+    save(fn, 'corr_tr', 'corr_val', 'corr_tst',  '-v7.3');
+    clear corr_tr corr_val corr_tst;
     
     fprintf(' ... done %s.\n',sec2hms(toc));
     
@@ -452,42 +423,6 @@ function deepag_parallel(pst, pdAllt, datasett)
   
 end
 
-%{
-function [Xmask, umask, idataset] = dividePar(camXmask, datasetw)
-
-   dataset = datasetw.Value;
-   Xmask = cell(1, 3);
-   idx = cell(1, 3);
-   [Xmask{1}, idx{1}, ~] = intersect(camXmask, dataset{1}.Xmask);
-   [Xmask{2}, idx{2}, ~] = intersect(camXmask, dataset{2}.Xmask);
-   [Xmask{3}, idx{3}, ~] = intersect(camXmask, dataset{3}.Xmask);
-   [~, idataset] = max([size(Xmask{1}, 2), size(Xmask{2}, 2), size(Xmask{3}, 2)]);
-      
-   % skip cameras that can see points from other datasets
-   if (1 ~= idataset) && (size(Xmask{1}, 2) > 0)
-     idataset = 0;
-     Xmask = [];
-     umask = [];
-     return;
-   end
-   if (2 ~= idataset) && (size(Xmask{2}, 2) > 0)
-     idataset = 0;
-     Xmask = [];
-     umask = [];
-     return;
-   end
-   if (3 ~= idataset) && (size(Xmask{3}, 2) > 0)
-     idataset = 0;
-     Xmask = [];
-     umask = [];
-     return;
-   end
-   
-   umask = idx{idataset};
-   Xmask = Xmask{idataset};
-   
-end
-%}
 
 function [u] = camU(cam)
   
@@ -498,6 +433,7 @@ function [u] = camU(cam)
   end
 
 end
+
 
 function [coefsOut, uOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize)
   dataset = datasetWrap.Value;
