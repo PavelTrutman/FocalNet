@@ -11,6 +11,7 @@ function k_nn_pixels()
   
   % properties
   margin = 0.2;
+  batchSize = 10;
   
   % find cams that their correspondences are far from each other
   fprintf('Choosing cameras with correspondences that are far from each other.\n'); tic;
@@ -42,28 +43,28 @@ function k_nn_pixels()
   u1y_trWrap = WorkerObjWrapper(u1y_tr);
   u2x_trWrap = WorkerObjWrapper(u2x_tr);
   u2y_trWrap = WorkerObjWrapper(u2y_tr);
-  results(size(u_val, 2)) = parallel.FevalFuture();
+
+  iterations = idivide(int32(size(u_val, 2)), batchSize, 'ceil');
+  results(iterations) = parallel.FevalFuture();
   
-  for i = 1:size(u_val, 2)
-    if mod(i, 100) == 0
-      fprintf([num2str(i), '/', num2str(size(u_val, 2)), '\n']);
-    end
-    u1x_val = u_val(1:7, i);
-    u1y_val = u_val(8:14, i);
-    u2x_val = u_val(15:21, i);
-    u2y_val = u_val(22:28, i);
+  for i = 1:iterations
+    iLow = (i - 1)*batchSize + 1;
+    iTop = min(size(u_val, 2), i*batchSize);
+    fprintf([num2str(iLow), '/', num2str(size(u_val, 2)), '\n']);
+    u1x_val = u_val(1:7, iLow:iTop);
+    u1y_val = u_val(8:14, iLow:iTop);
+    u2x_val = u_val(15:21, iLow:iTop);
+    u2y_val = u_val(22:28, iLow:iTop);
     
     results(i) = parfeval(pool, @findMatch, 2, u1x_val, u1y_val, u2x_val, u2y_val, u1x_trWrap, u1y_trWrap, u2x_trWrap, u2y_trWrap, margin);
   end
   
-  tic;
-  for i = 1:size(u_val, 2)
-    if mod(i, 100) == 0
-      fprintf([num2str(toc), 's: ', num2str(i), '/', num2str(size(u_val, 2)), '\n']);
-      tic;
-    end
+  for i = 1:iterations
+    tic;
     [ii, noswapSize, swapSize] = fetchNext(results);
+    fprintf([num2str(toc), 's: ', num2str((i - 1)*batchSize + 1), '/', num2str(size(u_val, 2)), '\n']);
   end
+  fprintf('End\n');
   delete(u1x_trWrap);
   delete(u1y_trWrap);
   delete(u2x_trWrap);
@@ -118,23 +119,23 @@ end
 
 function [noswapSum, swapSum] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1x_trWrap, u1y_trWrap, u2x_trWrap, u2y_trWrap, margin)
 
-    u1x_tr = u1x_trWrap.Value;
-    u1y_tr = u1y_trWrap.Value;
-    u2x_tr = u2x_trWrap.Value;
-    u2y_tr = u2y_trWrap.Value;
-    %u1x_tr = u1x_trWrap;
-    %u1y_tr = u1y_trWrap;
-    %u2x_tr = u2x_trWrap;
-    %u2y_tr = u2y_trWrap;
+  noswapSum = zeros(size(u1x_val, 2), 1);
+  swapSum = zeros(size(u1x_val, 2), 1);
 
+  u1x_tr = u1x_trWrap.Value;
+  u1y_tr = u1y_trWrap.Value;
+  u2x_tr = u2x_trWrap.Value;
+  u2y_tr = u2y_trWrap.Value;
+  
+  for i = 1:size(u1x_val, 2)
     % not swapped
     ordernoswap = zeros(7, size(u1x_tr, 2));
     noswap = true(1, size(u1x_tr, 2));
     for j = 1:7
-      hxBound = repmat(u1x_val(j, :) + margin, 7, sum(noswap));
-      hyBound = repmat(u1y_val(j, :) + margin, 7, sum(noswap));
-      lxBound = repmat(u1x_val(j, :) - margin, 7, sum(noswap));
-      lyBound = repmat(u1y_val(j, :) - margin, 7, sum(noswap));
+      hxBound = repmat(u1x_val(j, i) + margin, 7, sum(noswap));
+      hyBound = repmat(u1y_val(j, i) + margin, 7, sum(noswap));
+      lxBound = repmat(u1x_val(j, i) - margin, 7, sum(noswap));
+      lyBound = repmat(u1y_val(j, i) - margin, 7, sum(noswap));
       match = ((u1x_tr(:, noswap) < hxBound) & (u1x_tr(:, noswap) > lxBound) & (u1y_tr(:, noswap) < hyBound) & (u1y_tr(:, noswap) > lyBound));
       ordernoswap(j, noswap) = findFirstInCol(match);
       noswap(noswap) = (sum(match, 1) == 1);
@@ -147,10 +148,10 @@ function [noswapSum, swapSum] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1
     u2x_sel(:) = u2x_sel(idx);
     u2y_sel = u2y_tr(:, noswap)';
     u2y_sel(:) = u2y_sel(idx);
-    hxBound = repmat(u2x_val + margin, 1, sum(noswap));
-    hyBound = repmat(u2y_val + margin, 1, sum(noswap));
-    lxBound = repmat(u2x_val - margin, 1, sum(noswap));
-    lyBound = repmat(u2y_val - margin, 1, sum(noswap));
+    hxBound = repmat(u2x_val(:, i) + margin, 1, sum(noswap));
+    hyBound = repmat(u2y_val(:, i) + margin, 1, sum(noswap));
+    lxBound = repmat(u2x_val(:, i) - margin, 1, sum(noswap));
+    lyBound = repmat(u2y_val(:, i) - margin, 1, sum(noswap));
     match = all((u2x_sel' < hxBound) & (u2x_sel' > lxBound) & (u2y_sel' < hyBound) & (u2y_sel' > lyBound));
     noswap(noswap) = match;
     
@@ -158,10 +159,10 @@ function [noswapSum, swapSum] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1
     orderswap = zeros(7, size(u1x_tr, 2));
     swap = true(1, size(u1x_tr, 2));
     for j = 1:7
-      hxBound = repmat(u1x_val(j, :) + margin, 7, sum(swap));
-      hyBound = repmat(u1y_val(j, :) + margin, 7, sum(swap));
-      lxBound = repmat(u1x_val(j, :) - margin, 7, sum(swap));
-      lyBound = repmat(u1y_val(j, :) - margin, 7, sum(swap));
+      hxBound = repmat(u1x_val(j, i) + margin, 7, sum(swap));
+      hyBound = repmat(u1y_val(j, i) + margin, 7, sum(swap));
+      lxBound = repmat(u1x_val(j, i) - margin, 7, sum(swap));
+      lyBound = repmat(u1y_val(j, i) - margin, 7, sum(swap));
       match = ((u2x_tr(:, swap) < hxBound) & (u2x_tr(:, swap) > lxBound) & (u2y_tr(:, swap) < hyBound) & (u2y_tr(:, swap) > lyBound));
       orderswap(j, swap) = findFirstInCol(match);
       swap(swap) = (sum(match, 1) == 1);
@@ -174,17 +175,19 @@ function [noswapSum, swapSum] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1
     u1x_sel(:) = u1x_sel(idx);
     u1y_sel = u1y_tr(:, swap)';
     u1y_sel(:) = u1y_sel(idx);
-    hxBound = repmat(u2x_val + margin, 1, sum(swap));
-    hyBound = repmat(u2y_val + margin, 1, sum(swap));
-    lxBound = repmat(u2x_val - margin, 1, sum(swap));
-    lyBound = repmat(u2y_val - margin, 1, sum(swap));
+    hxBound = repmat(u2x_val(:, i) + margin, 1, sum(swap));
+    hyBound = repmat(u2y_val(:, i) + margin, 1, sum(swap));
+    lxBound = repmat(u2x_val(:, i) - margin, 1, sum(swap));
+    lyBound = repmat(u2y_val(:, i) - margin, 1, sum(swap));
     match = all((u1x_sel' < hxBound) & (u1x_sel' > lxBound) & (u1y_sel' < hyBound) & (u1y_sel' > lyBound));
     swap(swap) = match;
     
     
-    noswapSum = sum(noswap);
-    swapSum = sum(swap);
-    
+    noswapSum(i) = sum(noswap);
+    swapSum(i) = sum(swap);
+  
+  end
+  
     % points are close
     %{
     if swap
