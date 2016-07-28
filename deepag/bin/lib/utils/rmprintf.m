@@ -6,7 +6,7 @@
 function S = rmprintf(S)
 
 if numel(S)>0
-    fprintf(repmat('\b',1,length(S{end}))); 
+    fprintf(repmat('\b',1,length(sprintf(S{end})))); 
     if numel(S)>1
         S = S(1:end-1);
     else
