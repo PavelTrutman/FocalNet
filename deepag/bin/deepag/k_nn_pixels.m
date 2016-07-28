@@ -30,6 +30,9 @@ function k_nn_pixels()
   %f_val = corr_val.f(:, cix_val);
   %n_val = corr_val.norm(:, cix_val);
   
+  fprintf(['Size of training dataset: ', num2str(size(u_tr, 2)), '.\n']);
+  fprintf(['Size of validating dataset: ', num2str(size(u_val, 2)), '.\n']);
+  
   % nearest neighbour for points validating dataset
   fprintf('Searching for nearest neighbour for points validating dataset.\n'); tic;
   
@@ -47,24 +50,30 @@ function k_nn_pixels()
   iterations = idivide(int32(size(u_val, 2)), batchSize, 'ceil');
   results(iterations) = parallel.FevalFuture();
   
+  repS = {};
   for i = 1:iterations
     iLow = (i - 1)*batchSize + 1;
     iTop = min(size(u_val, 2), i*batchSize);
-    fprintf([num2str(iLow), '/', num2str(size(u_val, 2)), '\n']);
+    repS = adprintf(repS, [num2str(iLow), '/', num2str(size(u_val, 2))]);
     u1x_val = u_val(1:7, iLow:iTop);
     u1y_val = u_val(8:14, iLow:iTop);
     u2x_val = u_val(15:21, iLow:iTop);
     u2y_val = u_val(22:28, iLow:iTop);
     
     results(i) = parfeval(pool, @findMatch, 2, u1x_val, u1y_val, u2x_val, u2y_val, u1x_trWrap, u1y_trWrap, u2x_trWrap, u2y_trWrap, margin);
+    repS = rmprintf(repS);
   end
   
+  repS = {};
   for i = 1:iterations
-    tic;
-    [ii, noswapSize, swapSize] = fetchNext(results);
-    fprintf([num2str(toc), 's: ', num2str((i - 1)*batchSize + 1), '/', num2str(size(u_val, 2)), '\n']);
+    t = tic;
+    [ii, distances, indices] = fetchNext(results);
+    repS = rmprintf(repS);
+    repS = adprintf(repS, sprintf([num2str((i - 1)*batchSize + 1), '/', num2str(size(u_val, 2)), ': %1.3f s'], toc(t)));
   end
-  fprintf('End\n');
+  rmprintf(repS);
+  clear results;
+  fprintf(' ... done %s.\n', sec2hms(toc));
   delete(u1x_trWrap);
   delete(u1y_trWrap);
   delete(u2x_trWrap);
@@ -117,10 +126,10 @@ function cix = findGoodCams(u, margin)
     
 end
 
-function [noswapSum, swapSum] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1x_trWrap, u1y_trWrap, u2x_trWrap, u2y_trWrap, margin)
+function [dist, index] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1x_trWrap, u1y_trWrap, u2x_trWrap, u2y_trWrap, margin)
 
-  noswapSum = zeros(size(u1x_val, 2), 1);
-  swapSum = zeros(size(u1x_val, 2), 1);
+  dist = zeros(size(u1x_val, 2), 1);
+  index = zeros(size(u1x_val, 2), 1);
 
   u1x_tr = u1x_trWrap.Value;
   u1y_tr = u1y_trWrap.Value;
@@ -182,29 +191,35 @@ function [noswapSum, swapSum] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1
     match = all((u1x_sel' < hxBound) & (u1x_sel' > lxBound) & (u1y_sel' < hyBound) & (u1y_sel' > lyBound));
     swap(swap) = match;
     
+    % compute the distances
+    noswapIdx = find(noswap);
+    noswapDist = zeros(size(noswapIdx, 2), 1);
+    for j = noswapIdx
+      idx = ordernoswap(:, j);
+      noswapDist(j) = max([sum([(u1x_val(:, i) - u1x_tr(idx, j))'; (u1y_val(:, i) - u1y_tr(idx, j))'].^2) sum([(u2x_val(:, i) - u2x_tr(idx, j))'; (u2y_val(:, i) - u2y_tr(idx, j))'].^2)]);
+    end
+    swapIdx = find(swap);
+    swapDist = zeros(size(swapIdx, 2), 1);
+    for j = swapIdx
+      idx = orderswap(:, j);
+      swapDist(j) = max([sum([(u1x_val(:, i) - u2x_tr(idx, j))'; (u1y_val(:, i) - u2y_tr(idx, j))'].^2) sum([(u2x_val(:, i) - u1x_tr(idx, j))'; (u2y_val(:, i) - u1y_tr(idx, j))'].^2)]);
+    end
     
-    noswapSum(i) = sum(noswap);
-    swapSum(i) = sum(swap);
-  
+    allIdx = [noswapIdx, swapIdx];
+    if size(allIdx, 2) > 0
+      allDist = [noswapDist; swapDist];
+      [minDist, idx] = min(allDist);
+      dist(i) = minDist;
+      index(i) = allIdx(idx);
+    end
+    
   end
-  
-    % points are close
-    %{
-    if swap
-      [u2_tr, u1_tr] = deal(u1_tr, u2_tr);
-    end
-        
-    dist(k) = max([sum((u1_tr(:, order1) - u1_val).^2), sum((u2_tr(:, order2) - u2_val).^2)]);
-      
-    [m, idx] = min(dist);
-    fprintf([num2str(i), '/', num2str(size(u_val, 2)), ': ', num2str(m), '\n']);
-    %}
     
-    function b = findFirstInCol(a)
-      a = cumsum(a);
-      [row, col] = find(a == 0);
-      b = zeros(1, size(a, 2));
-      b(col) = row;
-      b = b + 1;
-    end
+  function b = findFirstInCol(a)
+    a = cumsum(a);
+    [row, col] = find(a == 0);
+    b = zeros(1, size(a, 2));
+    b(col) = row;
+    b = b + 1;
+  end
 end
