@@ -34,7 +34,7 @@ function k_nn_pixels()
   fprintf(['Size of validating dataset: ', num2str(size(u_val, 2)), '.\n']);
   
   % nearest neighbour for points validating dataset
-  fprintf('Searching for nearest neighbour for points validating dataset.\n'); tic;
+  fprintf('Searching for nearest neighbour for points in validating dataset.\n'); tic;
   
   u1x_tr = u_tr(1:7, :);
   u1y_tr = u_tr(8:14, :);
@@ -64,10 +64,19 @@ function k_nn_pixels()
     repS = rmprintf(repS);
   end
   
+  distances = NaN(size(u_val, 2), 1);
+  indices = NaN(size(u_val, 2), 1);
   repS = {};
   for i = 1:iterations
     t = tic;
-    [ii, distances, indices] = fetchNext(results);
+    [ii, dist, ind] = fetchNext(results);
+    if ii ~= iterations
+      distances(((ii-1)*batchSize+1):(ii*batchSize)) = dist;
+      indices(((ii-1)*batchSize+1):(ii*batchSize)) = ind;
+    else
+      distances(((ii-1)*batchSize+1):end) = dist;
+      indices(((ii-1)*batchSize+1):end) = ind;
+    end
     repS = rmprintf(repS);
     repS = adprintf(repS, sprintf([num2str((i - 1)*batchSize + 1), '/', num2str(size(u_val, 2)), ': %1.3f s'], toc(t)));
   end
@@ -128,8 +137,8 @@ end
 
 function [dist, index] = findMatch(u1x_val, u1y_val, u2x_val, u2y_val, u1x_trWrap, u1y_trWrap, u2x_trWrap, u2y_trWrap, margin)
 
-  dist = zeros(size(u1x_val, 2), 1);
-  index = zeros(size(u1x_val, 2), 1);
+  dist = NaN(size(u1x_val, 2), 1);
+  index = NaN(size(u1x_val, 2), 1);
 
   u1x_tr = u1x_trWrap.Value;
   u1y_tr = u1y_trWrap.Value;
