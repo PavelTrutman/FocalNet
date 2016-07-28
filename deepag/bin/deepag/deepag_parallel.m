@@ -45,10 +45,12 @@ function deepag_parallel(pst, pdAllt, datasett)
   else %close all except the unclosable GUI and keep existing parameters
     deepagInit
   end
+  
   %% Execs ------------------------------------------------------------------
   %% Close and clear all and exit
   if ps.Exit, deepagExit; return; end
-  %% Load data & show map
+  
+  %% Load data
   if ps.Load
     fprintf('%s: Load data: ',ps.Data); tic;
     repS = adprintf({},'Loading '); % progress report
@@ -87,7 +89,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     assignin('base', 'pdAll', pdAll);
   end
   
-  
+  %% Show map of 3D points and cameras centers
   if ps.ShowMap
     fprintf('%s: Showing Map: ',ps.Data); tic;
     subfig(2,2,1); hold on
@@ -109,7 +111,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     clear T
   end
   
-  
+  %% Normalize data from pixels to image widths
   if ps.Normalize
     fprintf('%s: Normalizing data: ', ps.Data); tic;
     for i = pdAll.C.cix
@@ -122,7 +124,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     assignin('base', 'pdAll', pdAll);
   end
   
-  
+  %% Remove cameras with extra large focal length
   if ps.RemoveOutliers
     fprintf('%s: Removing outliers: ', ps.Data); tic;
     fprintf('\n');
@@ -147,7 +149,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     assignin('base', 'pdAll', pdAll);
   end
   
-  
+  %% Divide 3D points and cams into three non-intersecting datasets
   if ps.Divide
     fprintf('%s: Showing Divided Map: \n', ps.Data); tic;
     fn = fullfile(pc.dataPath,ps.Data, 'boundary.mat');
@@ -204,7 +206,7 @@ function deepag_parallel(pst, pdAllt, datasett)
       camDatasetIdx(i) = idataset;
       rmprintf(repS);
     end
-
+    
     clear inliers cams;
     for i = 1:3
       dataset{i}.cam = num2cell(camDataset(camDatasetIdx == i));
@@ -215,7 +217,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     assignin('base', 'dataset', dataset);
   end
   
-  
+  %% Plot many histograms
   if ps.Hist
     fprintf('%s: Creating histograms: ', ps.Data); tic;
     h = cell(1, 3);
@@ -299,7 +301,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     clear i j;
   end
   
-  
+  %% Randomly sample the datasets and generate feature vectors and correspondences
   if ps.Prepare
     cameraPairsNum = 10000;
     minPointsInCommon = 15;
@@ -310,9 +312,13 @@ function deepag_parallel(pst, pdAllt, datasett)
     normSize = 2;
     features = cell(1, 3);
     correspondences = cell(1, 3);
+    
+    % initialize parallel pool
     pool = gcp();
     fprintf('%s: Preparing data: \n',ps.Data); tic;
     camsWrap = WorkerObjWrapper(cellfun(@camU, pdAll.C.cam, 'UniformOutput', false));
+    
+    % for each dataset
     for i = 1:3
       repS = adprintf({}, ['Preparing dataset ' int2str(i), ': ']);
       features{i}.coefs = zeros(coefsSize, cameraPairsNum*perCameraPair);
@@ -323,6 +329,9 @@ function deepag_parallel(pst, pdAllt, datasett)
       correspondences{i}.norm = zeros(normSize, cameraPairsNum*perCameraPair);
       results(cameraPairsNum) = parallel.FevalFuture(); %#ok<AGROW>
       datasetWrap = WorkerObjWrapper(dataset{i}.cam);
+      
+      % randomly sample camera pairs and submit them to parallel
+      % computation
       j = 1;
       while j <= cameraPairsNum
         repS = adprintf(repS, ['camera pair ', int2str(j), '/', int2str(cameraPairsNum)]);
@@ -336,6 +345,8 @@ function deepag_parallel(pst, pdAllt, datasett)
         repS = rmprintf(repS);
         j = j + 1;
       end
+      
+      % retrieve results from parallel computation
       j = 1;
       while j <= cameraPairsNum
         repS = adprintf(repS, ['camera pair ', int2str(j), '/', int2str(cameraPairsNum)]);
@@ -352,6 +363,7 @@ function deepag_parallel(pst, pdAllt, datasett)
         correspondences{i}.u(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = u;
         correspondences{i}.f(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{rr(1)}.cix}.f; pdAll.C.cam{dataset{i}.cam{rr(2)}.cix}.f], 1, perCameraPair);
         correspondences{i}.norm(:, ((jj-1)*perCameraPair+1):(jj*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{rr(1)}.cix}.normFactor; pdAll.C.cam{dataset{i}.cam{rr(2)}.cix}.normFactor], 1, perCameraPair);
+        
         repS = rmprintf(repS);
         j = j + 1;
       end
@@ -405,6 +417,7 @@ function deepag_parallel(pst, pdAllt, datasett)
     save(fn, 'tst_norm', '-append');
     clear tst_norm;
     
+    % save correspondences into file
     fn = fullfile(pc.dataPath,ps.Data, 'correspondences.mat');
     fprintf(['Saving correspondences into ', fn, '\n']);
     corr_tr = correspondences{3}; %#ok<NASGU>
@@ -425,8 +438,11 @@ end
 
 %% Functions
 
-% returns coordinates of correspondences from cam
 function [u] = camU(cam)
+  % returns coordinates of correspondences from cam
+  % 
+  % cam = structure representing camera
+  % u = coordinates of correspondences
 
   if isempty(cam)
     u = [];
@@ -436,22 +452,41 @@ function [u] = camU(cam)
   
 end
 
-% function used for parallel computing
-% for two cameras returns feature vector and coordinates of correspondences
 function [coefsOut, uOut, r] = preparePar(r, datasetWrap, camsWrap, perCameraPair, pointsNum, minPointsInCommon, coefsSize)
+  % For two cameras returns feature vector and coordinates of
+  % correspondences. This function is used for parallel computation.
+  % 
+  % r = [index of the first camera, index of the second camera]
+  % datasetWrap = wrapped cameras from dataset
+  % camsWrap = wrapped all cameras
+  % perCameraPair = number of samples for each camera pair
+  % pointsNum = how many correspondences per sample
+  % minPointsInCommon = minimal number of points that the two cameras have
+  %                     to have in common, is used to prevent to sample the
+  %                     same correspondences
+  % coefsSize = expected size feature vector
+  % coefsOut = features vectors, size: coefsSize x perCameraPair
+  % uOut = coordinates of correspondences, size: 4*pointsNum x perCameraPair
+  
+  % unwrap
   dataset = datasetWrap.Value;
   cams = camsWrap.Value;
+  
+  % prepare data
   datasetCam1 = dataset{r(1)};
   datasetCam2 = dataset{r(2)};
   u1 = cams{datasetCam1.cix};
   u2 = cams{datasetCam2.cix};
 
+  % compute 3D points that can see both cameras
   [XmaskCommon, idx1, idx2] = intersect(datasetCam1.Xmask, datasetCam2.Xmask);
   if size(XmaskCommon, 2) < minPointsInCommon
     coefsOut = NaN;
+    uOut = NaN;
     return;
   end
 
+  % randomly sample correspondences
   k = 1;
   coefsOut = zeros(coefsSize, perCameraPair);
   uOut = zeros(pointsNum*4, perCameraPair);

@@ -28,7 +28,7 @@ function deepag(pst, pdAllt, datasett)
     ps.Load           = false;   % Load data
     ps.ShowMap        = false;   % show map
     ps.Normalize      = false;   % Normalize
-    ps.RemoveOutliers = false; % Remove focal length outliers
+    ps.RemoveOutliers = false;   % Remove focal length outliers
     ps.Divide         = false;   % Divide points into train/val/test subsets
     ps.Hist           = false;   % Show histograms of the datasets
     ps.Prepare        = false;   % Choose a pair of cameras with many common points  at random and choose a set of 7 points at random
@@ -37,7 +37,7 @@ function deepag(pst, pdAllt, datasett)
     gf(1) = subfig(4,9,1); % GUI window
     % gf(1) = subfig([1 50 763 127],figure); % GUI window
     set(gcf,'closerequestfcn',[]);     % make GUI unclosable
-    ps = pargui(ps, [size(fieldnames(ps),1)+1 1],'deepag','deepag');   % create the GUI 
+    ps = pargui(ps, [size(fieldnames(ps),1)+1 1], 'deepag');   % create the GUI 
     parcutscreen(gf(1));               % shrink the screen
     clear gf
     %
@@ -45,10 +45,12 @@ function deepag(pst, pdAllt, datasett)
   else %close all except the unclosable GUI and keep existing parameters
     deepagInit
   end
+  
   %% Execs ------------------------------------------------------------------
   %% Close and clear all and exit
   if ps.Exit, deepagExit; return; end
-  %% Load data & show map
+  
+  %% Load data
   if ps.Load
     fprintf('%s: Load data: ',ps.Data); tic;
     repS = adprintf({},'Loading '); % progress report
@@ -86,6 +88,8 @@ function deepag(pst, pdAllt, datasett)
     fprintf(' ... done %s.\n',sec2hms(toc));
     assignin('base', 'pdAll', pdAll);
   end
+  
+  %% Show map of 3D points and cameras centers
   if ps.ShowMap
     fprintf('%s: Showing Map: ',ps.Data); tic;
     subfig(2,2,1); hold on
@@ -106,6 +110,8 @@ function deepag(pst, pdAllt, datasett)
     fprintf(' ... done %s.\n',sec2hms(toc));
     clear T
   end
+  
+  %% Normalize data from pixels to image widths
   if ps.Normalize
     fprintf('%s: Normalizing data: ', ps.Data); tic;
     for i = pdAll.C.cix
@@ -117,6 +123,8 @@ function deepag(pst, pdAllt, datasett)
     clear i;
     assignin('base', 'pdAll', pdAll);
   end
+  
+  %% Remove cameras with extra large focal length
   if ps.RemoveOutliers
     fprintf('%s: Removing outliers: ', ps.Data); tic;
     fprintf('\n');
@@ -141,7 +149,7 @@ function deepag(pst, pdAllt, datasett)
     assignin('base', 'pdAll', pdAll);
   end
   
-  
+  %% Divide 3D points and cams into three non-intersecting datasets
   if ps.Divide
     fprintf('%s: Showing Divided Map: \n', ps.Data); tic;
     fn = fullfile(pc.dataPath,ps.Data, 'boundary.mat');
@@ -167,15 +175,10 @@ function deepag(pst, pdAllt, datasett)
     % divide cameras
     camDatasetIdx = zeros(1, size(pdAll.C.cam, 2));
     camDataset = repmat(struct('Xmask', [], 'umask', [], 'cix', 0), 1, size(pdAll.C.cam, 2));
-    inliers = pdAll.C.inliers;
-    cams = pdAll.C.cam;    
-    for i = 1:size(cams, 2)
-      if ~any(inliers == i)
-        continue;
-      end
-      repS = adprintf({}, ['Parsing camera ' int2str(i), '/', int2str(size(cams, 2))]);
-      camXmask = cams{i}.Xmask;
-    
+    for i = pdAll.C.inliers
+      repS = adprintf({}, ['Parsing camera ' int2str(i), '/', int2str(size(pdAll.C.cam, 2))]);
+      camXmask = pdAll.C.cam{i}.Xmask;
+      
       Xmask = cell(1, 3);
       idx = cell(1, 3);
       [Xmask{1}, idx{1}, ~] = intersect(camXmask, dataset{1}.Xmask);
@@ -203,6 +206,7 @@ function deepag(pst, pdAllt, datasett)
       camDatasetIdx(i) = idataset;
       rmprintf(repS);
     end
+    
     clear inliers cams;
     for i = 1:3
       dataset{i}.cam = num2cell(camDataset(camDatasetIdx == i));
@@ -213,7 +217,7 @@ function deepag(pst, pdAllt, datasett)
     assignin('base', 'dataset', dataset);
   end
   
-  
+  %% Plot many histograms
   if ps.Hist
     fprintf('%s: Creating histograms: ', ps.Data); tic;
     h = cell(1, 3);
@@ -232,7 +236,6 @@ function deepag(pst, pdAllt, datasett)
         h{i}.height(j) = min(pdAll.is(dataset{i}.cam{j}.cix, :));
         h{i}.ratio(j) = h{i}.width(j)/h{i}.height(j);
       end
-      
     end
 
     % focal length histogram
@@ -272,9 +275,7 @@ function deepag(pst, pdAllt, datasett)
 
     % height histogram
     figure;
-    hold on;    %catch
-      %fprintf('Parallel Computing Toolbox not used.\n');
-    %end
+    hold on;
     for i = 1:3
       histogram(h{i}.height, 'Normalization', 'probability', 'BinWidth', 10, 'FaceAlpha', 0.5);
       xlabel('Image height [px]');
@@ -299,6 +300,8 @@ function deepag(pst, pdAllt, datasett)
     fprintf(' ... done %s.\n',sec2hms(toc));
     clear i j;
   end
+  
+  %% Randomly sample the datasets and generate feature vectors and correspondences
   if ps.Prepare
     cameraPairsNum = 10000;
     minPointsInCommon = 15;
@@ -308,49 +311,43 @@ function deepag(pst, pdAllt, datasett)
     fSize = 2;
     normSize = 2;
     features = cell(1, 3);
+    correspondences = cell(1, 3);
+    
     fprintf('%s: Preparing data: \n',ps.Data); tic;
+    cams = cellfun(@camU, pdAll.C.cam, 'UniformOutput', false);
+    
+    % for each dataset
     for i = 1:3
       repS = adprintf({}, ['Preparing dataset ' int2str(i), ': ']);
-      dataset{i}.cameraPairs = cell(1, cameraPairsNum);
       features{i}.coefs = zeros(coefsSize, cameraPairsNum*perCameraPair);
       features{i}.f = zeros(fSize, cameraPairsNum*perCameraPair);
       features{i}.norm = zeros(normSize, cameraPairsNum*perCameraPair);
+      correspondences{i}.u = zeros(pointsNum*4, cameraPairsNum*perCameraPair);
+      correspondences{i}.f = zeros(fSize, cameraPairsNum*perCameraPair);
+      correspondences{i}.norm = zeros(normSize, cameraPairsNum*perCameraPair);
+      dataseti = dataset{i}.cam;
+      
+      % randomly sample camera pairs
       j = 1;
-      l = 1;
       while j <= cameraPairsNum
+        repS = adprintf(repS, ['camera pair ', int2str(j), '/', int2str(cameraPairsNum)]);
         r = randperm(size(dataset{i}.cam, 2), 2);
-        [XmaskCommon, idx1, idx2] = intersect(dataset{i}.cam{r(1)}.Xmask, dataset{i}.cam{r(2)}.Xmask);
-        if size(XmaskCommon, 2) < minPointsInCommon
+  
+        [coefs, u] = prepare(r, dataseti, cams, perCameraPair, pointsNum, minPointsInCommon, coefsSize);
+        if any(isnan(coefs))
+          repS = rmprintf(repS);
           continue;
         end
-        repS = adprintf(repS, ['camera pair ', int2str(j), '/', int2str(cameraPairsNum)]);
-        % create camera pairs
-        dataset{i}.cameraPairs{j}.cix1 = dataset{i}.cam{r(1)}.cix;
-        dataset{i}.cameraPairs{j}.cix2 = dataset{i}.cam{r(2)}.cix;
         
-        % select points
-        dataset{i}.cameraPairs{j}.Xmask = cell(1, perCameraPair);
-        dataset{i}.cameraPairs{j}.u1mask = cell(1, perCameraPair);
-        dataset{i}.cameraPairs{j}.u2mask = cell(1, perCameraPair);
-        k = 1;
-        while k <= perCameraPair
-          rk = randperm(size(XmaskCommon, 2), pointsNum);
-          dataset{i}.cameraPairs{j}.Xmask{k} = XmaskCommon(rk);
-          dataset{i}.cameraPairs{j}.u1mask{k} = dataset{i}.cam{r(1)}.umask(idx1(rk));
-          dataset{i}.cameraPairs{j}.u2mask{k} = dataset{i}.cam{r(2)}.umask(idx2(rk));
-          coefs = two_focal(pdAll.C.cam{dataset{i}.cameraPairs{j}.cix1}.u(:, dataset{i}.cameraPairs{j}.u1mask{k})', pdAll.C.cam{dataset{i}.cameraPairs{j}.cix2}.u(:, dataset{i}.cameraPairs{j}.u2mask{k})');
-          if any(isnan(coefs))
-            continue;
-          end
-          features{i}.coefs(:, l) = coefs;
-          features{i}.f(:, l) = [pdAll.C.cam{dataset{i}.cameraPairs{j}.cix1}.f; pdAll.C.cam{dataset{i}.cameraPairs{j}.cix2}.f];
-          features{i}.norm(:, l) = [pdAll.C.cam{dataset{i}.cameraPairs{j}.cix1}.normFactor; pdAll.C.cam{dataset{i}.cameraPairs{j}.cix2}.normFactor];
-          k = k + 1;
-          l = l + 1;
-        end
+        features{i}.coefs(:, ((j-1)*perCameraPair+1):(j*perCameraPair)) = coefs;
+        features{i}.f(:, ((j-1)*perCameraPair+1):(j*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{r(1)}.cix}.f; pdAll.C.cam{dataset{i}.cam{r(2)}.cix}.f], 1, perCameraPair);
+        features{i}.norm(:, ((j-1)*perCameraPair+1):(j*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{r(1)}.cix}.normFactor; pdAll.C.cam{dataset{i}.cam{r(2)}.cix}.normFactor], 1, perCameraPair);
+        correspondences{i}.u(:, ((j-1)*perCameraPair+1):(j*perCameraPair)) = u;
+        correspondences{i}.f(:, ((j-1)*perCameraPair+1):(j*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{r(1)}.cix}.f; pdAll.C.cam{dataset{i}.cam{r(2)}.cix}.f], 1, perCameraPair);
+        correspondences{i}.norm(:, ((j-1)*perCameraPair+1):(j*perCameraPair)) = repmat([pdAll.C.cam{dataset{i}.cam{r(1)}.cix}.normFactor; pdAll.C.cam{dataset{i}.cam{r(2)}.cix}.normFactor], 1, perCameraPair);
         
-        j = j + 1;
         repS = rmprintf(repS);
+        j = j + 1;
       end
       rmprintf(repS);
       
@@ -365,6 +362,8 @@ function deepag(pst, pdAllt, datasett)
     clear repS i j k l cameraPairsNum minPointsInCommon pointsNum perCameraPair coefsSize fSize normSize r XmaskCommon idx1 idx2 rk coefs X_std keep;
     
     assignin('base', 'features', features);
+    assignin('base', 'correspondences', correspondences);
+    
     % save feature vectors into file
     fn = fullfile(pc.dataPath,ps.Data, 'features.mat');
     fprintf(['Saving feature vectors into ', fn, '\n']);
@@ -395,10 +394,84 @@ function deepag(pst, pdAllt, datasett)
     tst_norm = features{1}.norm; %#ok<NASGU>
     save(fn, 'tst_norm', '-append');
     clear tst_norm;
+    
+    % save correspondences into file
+    fn = fullfile(pc.dataPath,ps.Data, 'correspondences.mat');
+    fprintf(['Saving correspondences into ', fn, '\n']);
+    corr_tr = correspondences{3}; %#ok<NASGU>
+    corr_val = correspondences{2}; %#ok<NASGU>
+    corr_tst = correspondences{1}; %#ok<NASGU>
+    save(fn, 'corr_tr', 'corr_val', 'corr_tst',  '-v7.3');
+    clear corr_tr corr_val corr_tst;
+    
     fprintf(' ... done %s.\n',sec2hms(toc));
     
   end
 
   assignin('base', 'ps', ps);
+  assignin('base', 'pdAll', pdAll);
+  assignin('base', 'dataset', dataset);
   
+end
+
+%% Functions
+
+function [u] = camU(cam)
+  % returns coordinates of correspondences from cam
+  % 
+  % cam = structure representing camera
+  % u = coordinates of correspondences
+
+  if isempty(cam)
+    u = [];
+  else
+    u = cam.u;
+  end
+  
+end
+
+function [coefsOut, uOut] = prepare(r, dataset, cams, perCameraPair, pointsNum, minPointsInCommon, coefsSize)
+  % For two cameras returns feature vector and coordinates of
+  % correspondences.
+  % 
+  % r = [index of the first camera, index of the second camera]
+  % dataset = cameras from dataset
+  % cams = all cameras
+  % perCameraPair = number of samples for each camera pair
+  % pointsNum = how many correspondences per sample
+  % minPointsInCommon = minimal number of points that the two cameras have
+  %                     to have in common, is used to prevent to sample the
+  %                     same correspondences
+  % coefsSize = expected size feature vector
+  % coefsOut = features vectors, size: coefsSize x perCameraPair
+  % uOut = coordinates of correspondences, size: 4*pointsNum x perCameraPair
+  
+  % prepare data
+  datasetCam1 = dataset{r(1)};
+  datasetCam2 = dataset{r(2)};
+  u1 = cams{datasetCam1.cix};
+  u2 = cams{datasetCam2.cix};
+
+  % compute 3D points that can see both cameras
+  [XmaskCommon, idx1, idx2] = intersect(datasetCam1.Xmask, datasetCam2.Xmask);
+  if size(XmaskCommon, 2) < minPointsInCommon
+    coefsOut = NaN;
+    uOut = NaN;
+    return;
+  end
+
+  % randomly sample correspondences
+  k = 1;
+  coefsOut = zeros(coefsSize, perCameraPair);
+  uOut = zeros(pointsNum*4, perCameraPair);
+  while k <= perCameraPair
+    rk = randperm(size(XmaskCommon, 2), pointsNum);
+    coefs = two_focal(u1(:, datasetCam1.umask(idx1(rk)))', u2(:, datasetCam2.umask(idx2(rk)))');
+    if any(isnan(coefs))
+      continue;
+    end
+    coefsOut(:, k) = coefs;
+    uOut(:, k) = [reshape(u1(:, datasetCam1.umask(idx1(rk)))', [], 1); reshape(u2(:, datasetCam2.umask(idx2(rk)))', [], 1)];
+    k = k + 1;
+  end
 end
