@@ -3,6 +3,7 @@
 % Pavel Trutman
 % INRIA, 2016
 
+% load file
 file = 'nn_4L_GPU-160720-152910.mat';
 load(['results/' file]);
 
@@ -10,6 +11,7 @@ if ~exist('plotPerEpoch', 'var')
   plotPerEpoch = 1;
 end
 
+% plot error based on epoch
 figure;
 hold on;
 
