@@ -1,9 +1,9 @@
-function matconvnet_setup(varargin)
+function matconvnet_setup_GPU(varargin)
 
 deepagpaths();
 vl_setupnn();
 
-opts.useGpu = false;
+opts.useGpu = true;
 opts.enableCudnn = true;
 opts.cudnnRoot = '/meleze/gpudata/SHARED/cudnn/cudnnR4-prod/';
 opts.verbose = false;
