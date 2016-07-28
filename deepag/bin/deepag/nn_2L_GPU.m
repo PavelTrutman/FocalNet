@@ -4,7 +4,7 @@
 % INRIA, 2016
 
 % init matconvnet
-matconvnet_setup;
+matconvnet_setup_GPU;
 
 % prepare data
 clear Xtr Ytr Ntr Xval Yval Nval;
@@ -43,22 +43,16 @@ Y_std(Y_std == 0) = 1;
 
 % randomly initialize parameters of the model
 w1 = single(normrnd(0, 1/sqrt(di), [1, 1, di, h1]));
-%w1 = single(zeros([1, 1, di, h1]));
 w1_m = zeros(size(w1), 'gpuArray');
 b1 = single(normrnd(0, 1/sqrt(di), [1, 1, h1]));
-%b1 = single(zeros([1, 1, h1]));
 b1_m = zeros(size(b1), 'gpuArray');
 w2 = single(normrnd(0, 1/sqrt(h1), [1, 1, h1, h2]));
-%w2 = single(zeros([1, 1, h1, h2]));
 w2_m = zeros(size(w2), 'gpuArray');
 b2 = single(normrnd(0, 1/sqrt(h1), [1, 1, h2]));
-%b2 = single(zeros([1, 1, h2]));
 b2_m = zeros(size(b2), 'gpuArray');
 w3 = single(normrnd(0, 1/sqrt(h2), [1, 1, h2, do]));
-%w3 = single(zeros([1, 1, h2, do]));
 w3_m = zeros(size(w3), 'gpuArray');
 b3 = single(normrnd(0, 1/sqrt(h2), [1, 1, do]));
-%b3 = single(zeros([1, 1, do]));
 b3_m = zeros(size(b3), 'gpuArray');
 
 clear net;
@@ -148,22 +142,6 @@ for epoch = 1:nepoch
       fprintf('%3i/%3i: log(tr): %7.3s, log(val): %7.3s, tr: %7.3s, val: %7.3s, sec: %5.2fs\n', epoch, nepoch, log10(tr_error(j)), log10(val_error(j)), tr_error(j), val_error(j), toc);
       tic;
       
-      %{
-      if j > 1          
-        figure(1);
-        semilogy((0:(j-1))*plotPeriod/nsamples, tr_error(1:j));
-        hold on;
-        semilogy((0:(j-1))*plotPeriod/nsamples, val_error(1:j));
-        hold off;
-        legend('Training dataset', 'Validating dataset', 'Location', 'southoutside');
-        xlabel('Epoch');
-        ylabel('Error [px]');
-        xlim([0 (j-1)*plotPeriod/nsamples]);
-        ylim([min([tr_error(1:j) val_error(1:j)]) max([tr_error(1:j) val_error(1:j)])]);
-        grid on;
-        drawnow;
-      end
-      %}
       j = j + 1;
     end 
       

@@ -41,22 +41,16 @@ Y_std(Y_std == 0) = 1;
 
 % randomly initialize parameters of the model
 w1 = single(normrnd(0, 1/sqrt(di), [1, 1, di, h1]));
-%w1 = single(zeros([1, 1, di, h1]));
 w1_m = zeros('like', w1);
 b1 = single(normrnd(0, 1/sqrt(di), [1, 1, h1]));
-%b1 = single(zeros([1, 1, h1]));
 b1_m = zeros('like', b1);
 w2 = single(normrnd(0, 1/sqrt(h1), [1, 1, h1, h2]));
-%w2 = single(zeros([1, 1, h1, h2]));
 w2_m = zeros('like', w2);
 b2 = single(normrnd(0, 1/sqrt(h1), [1, 1, h2]));
-%b2 = single(zeros([1, 1, h2]));
 b2_m = zeros('like', b2);
 w3 = single(normrnd(0, 1/sqrt(h2), [1, 1, h2, do]));
-%w3 = single(zeros([1, 1, h2, do]));
 w3_m = zeros('like', w3);
 b3 = single(normrnd(0, 1/sqrt(h2), [1, 1, do]));
-%b3 = single(zeros([1, 1, do]));
 b3_m = zeros('like', b3);
 
 clear net;

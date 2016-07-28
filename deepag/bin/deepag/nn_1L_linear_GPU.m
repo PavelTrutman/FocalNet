@@ -4,7 +4,7 @@
 % INRIA, 2016
 
 % init matconvnet
-matconvnet_setup;
+matconvnet_setup_GPU;
 
 % prepare data
 clear Xtr Ytr Ntr Xval Yval Nval;
@@ -99,23 +99,7 @@ for epoch = 1:nepoch
       
       fprintf('%3i/%3i: log(tr): %7.3s, log(val): %7.3s, tr: %7.3s, val: %7.3s, sec: %5.2fs\n', epoch, nepoch, log10(tr_error(j)), log10(val_error(j)), tr_error(j), val_error(j), toc);
       tic;
-      
-      %{
-      if j > 1          
-        figure(1);
-        semilogy((0:(j-1))*plotPeriod/nsamples, tr_error(1:j));
-        hold on;
-        semilogy((0:(j-1))*plotPeriod/nsamples, val_error(1:j));
-        hold off;
-        legend('Training dataset', 'Validating dataset', 'Location', 'southoutside');
-        xlabel('Epoch');
-        ylabel('Error [px]');
-        xlim([0 (j-1)*plotPeriod/nsamples]);
-        ylim([min([tr_error(1:j) val_error(1:j)]) max([tr_error(1:j) val_error(1:j)])]);
-        grid on;
-        drawnow;
-      end
-      %}
+
       j = j + 1;
     end    
       

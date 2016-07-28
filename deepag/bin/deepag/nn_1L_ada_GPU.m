@@ -1,10 +1,10 @@
-% 1-layer neural network
+% 1-layer neural network, adaptive learning rates
 % 
 % Pavel Trutman
 % INRIA, 2016
 
 % init matconvnet
-matconvnet_setup;
+matconvnet_setup_GPU;
 
 % prepare data
 clear Xtr Ytr Ntr Xval Yval Nval;
@@ -42,28 +42,24 @@ Y_std(Y_std == 0) = 1;
 
 % randomly initialize parameters of the model
 w1 = gpuArray(single(normrnd(0, 1/sqrt(di), [1, 1, di, h1])));
-%w1 = single(zeros([1, 1, di, h1]));
 w1_m = zeros(size(w1), 'gpuArray');
 w1_last = zeros(size(w1), 'gpuArray');
 w1_grad_last = zeros(size(w1), 'gpuArray');
 w1_eta = ones(size(w1), 'gpuArray')*lrate;
 w1_max = ones(size(w1), 'gpuArray')*lratemax;
 b1 = gpuArray(single(normrnd(0, 1/sqrt(di), [1, 1, h1])));
-%b1 = single(zeros([1, 1, h1]));
 b1_m = zeros(size(b1), 'gpuArray');
 b1_last = zeros(size(b1), 'gpuArray');
 b1_grad_last = zeros(size(b1), 'gpuArray');
 b1_eta = ones(size(b1), 'gpuArray')*lrate;
 b1_max = ones(size(b1), 'gpuArray')*lratemax;
 w2 = gpuArray(single(normrnd(0, 1/sqrt(h1), [1, 1, h1, do])));
-%w2 = single(zeros([1, 1, h1, do]));
 w2_m = zeros(size(w2), 'gpuArray');
 w2_last = zeros(size(w2), 'gpuArray');
 w2_grad_last = zeros(size(w2), 'gpuArray');
 w2_eta = ones(size(w2), 'gpuArray')*lrate;
 w2_max = ones(size(w2), 'gpuArray')*lratemax;
 b2 = gpuArray(single(normrnd(0, 1/sqrt(h1), [1, 1, do])));
-%b2 = single(zeros([1, 1, do]));
 b2_m = zeros(size(b2), 'gpuArray');
 b2_last = zeros(size(b2), 'gpuArray');
 b2_grad_last = zeros(size(b2), 'gpuArray');
@@ -143,22 +139,6 @@ for epoch = 1:nepoch
       fprintf('         w1: %7.3s, b1: %7.3s, w2: %7.3s, b2: %7.3s\n', mean(w1_eta(:)), mean(b1_eta(:)), mean(w2_eta(:)), mean(b2_eta(:)));
       tic;
       
-      %{
-      if j > 1          
-        figure(1);
-        semilogy((0:(j-1))*plotPeriod/nsamples, tr_error(1:j));
-        hold on;
-        semilogy((0:(j-1))*plotPeriod/nsamples, val_error(1:j));
-        hold off;
-        legend('Training dataset', 'Validating dataset', 'Location', 'southoutside');
-        xlabel('Epoch');
-        ylabel('Error [px]');
-        xlim([0 (j-1)*plotPeriod/nsamples]);
-        ylim([min([tr_error(1:j) val_error(1:j)]) max([tr_error(1:j) val_error(1:j)])]);
-        grid on;
-        drawnow;
-      end
-      %}
       j = j + 1;
     end  
       
