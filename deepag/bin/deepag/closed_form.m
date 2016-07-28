@@ -1,7 +1,7 @@
+% Linear closed form solution
+% 
 % Pavel Trutman
 % INRIA, 2016
-% 
-% Linear closed form solution
 
 % prepare data
 data = matfile('../../data/paris/features.mat');
@@ -17,12 +17,15 @@ Ytst = data.tst_f;
 Ntst = data.tst_norm;
 clear data;
 
+% compute weights
 W = Xtr'\Ytr';
 
+% predict
 YtrHat = transpose(Xtr'*W);
 YvalHat = transpose(Xval'*W);
 YtstHat = transpose(Xtst'*W);
 
+% compute error
 tr_error  = mean(sqrt(sum((YtrHat.*Ntr   - Ytr.*Ntr  ).^2)));
 val_error = mean(sqrt(sum((YvalHat.*Nval - Yval.*Nval).^2)));
 tst_error = mean(sqrt(sum((YtstHat.*Ntst - Ytst.*Ntst).^2)));

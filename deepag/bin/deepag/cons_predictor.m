@@ -14,8 +14,10 @@ Ytst = data.tst_f;
 Ntst = data.tst_norm;
 clear data;
 
+% compute prediction
 Ypred = mean(Ytr.*Ntr, 2);
 
+% compute error
 tr_error  = mean(sqrt(sum((Ytr.*Ntr   - repmat(Ypred, 1, size(Ytr,  2))).^2)));
 val_error = mean(sqrt(sum((Yval.*Nval - repmat(Ypred, 1, size(Yval, 2))).^2)));
 tst_error = mean(sqrt(sum((Ytst.*Ntst - repmat(Ypred, 1, size(Ytst, 2))).^2)));
