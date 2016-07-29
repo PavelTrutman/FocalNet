@@ -7,7 +7,7 @@ function k_nn_pixels()
   deepagpaths;
 
   % prepare data
-  load('../../data/paris/correspondences.mat');
+  load('../../data/paris/correspondences_syntetic.mat');
   
   % properties
   margin = 1/7;
@@ -29,8 +29,6 @@ function k_nn_pixels()
   u_val = corr_val.u(:, cix_val);
   %f_val = corr_val.f(:, cix_val);
   %n_val = corr_val.norm(:, cix_val);
-  
-  %load('pixels_syntetic.mat');
   
   fprintf(['Size of training dataset: ', num2str(size(u_tr, 2)), '.\n']);
   fprintf(['Size of validating dataset: ', num2str(size(u_val, 2)), '.\n']);

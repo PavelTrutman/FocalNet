@@ -8,13 +8,13 @@ overMarginCoef = 1.05;
 
 v = [repmat([-6/7; -4/7; -2/7; 0; 2/7; 4/7; 6/7], 2, 1); -repmat([-6/7; -4/7; -2/7; 0; 2/7; 4/7; 6/7], 2, 1)];
 
-u_tr = v;
-u_val = zeros(28, valSize);
+corr_tr.u = v;
+corr_val.u = zeros(28, valSize);
 for i = 1:valSize
-  u_val(:, i) = v + unifrnd(-1/7*overMarginCoef, 1/7*overMarginCoef, 28, 1);
+  corr_val.u(:, i) = v + unifrnd(-1/7*overMarginCoef, 1/7*overMarginCoef, 28, 1);
   % permute the correspondences
   shuffle = randperm(7)';
-  u_val(:, i) = u_val([shuffle + 0; shuffle + 7; shuffle + 14; shuffle + 21], i);
+  corr_val.u(:, i) = corr_val.u([shuffle + 0; shuffle + 7; shuffle + 14; shuffle + 21], i);
 end
 
-save('pixels_syntetic.mat', 'u_tr', 'u_val', '-v7.3');
+save('../../data/paris/correspondences_syntetic.mat', 'corr_tr', 'corr_val', '-v7.3');
