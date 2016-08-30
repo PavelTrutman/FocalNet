@@ -6,7 +6,7 @@
 % th = rotation angle
 % A = diagonalization matrix A'*q*A = diag([1/a^2 1/b^2 -1])
 
-% T. Pajdla pajdla@ciirc.cvut.cz 2014-01-10
+% T. Pajdla pajdla@cvut.cz 2014-01-10
 function [p,A] = q2par(q)
 
 q = (q+q')/2; % symmetrize

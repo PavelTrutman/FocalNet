@@ -1,6 +1,4 @@
-% E = XY2rts(X)
-%
-% E = arg min ||X(4:6,:) - (s*r*X(1:3,:) + t)||
+% E = XY2rts(X) - E = arg min ||X(4:6,:) - (s*r*X(1:3,:) + t)||
 %
 % X(1:3,:) ... 3 x n points
 % X(4:6,:) ... 3 x n points

@@ -24,7 +24,7 @@
 
 % Tomas Pajdla (pajdla@cmp.felk.cvut.cz)
 % 2015-09-04
-function h = camplot(P,f,c,u,t)
+function h = camplot(P,f,c,u,~)
 if isstruct(P)
     K = P.K;
     R = P.R;
@@ -32,6 +32,7 @@ if isstruct(P)
     P = KRC2P(P);
 else
     [K,R,C] = P2KRC(P); % camera parameters
+    K = K/K(1,1); % assume f close to K(1,1)
 end
 if all(isfinite(P(:)))
     if nargin>1 % override f
@@ -56,7 +57,7 @@ if all(isfinite(P(:)))
                                 0      min(p_a)]));
     end
     o_d = [R' C]*a2h(K\a2h(o_a)); % origin of \aplha in \delta
-    x_d  = [R' C]*a2h(K\a2h(x_a)); % outer frame in \delta
+    x_d = [R' C]*a2h(K\a2h(x_a)); % outer frame in \delta
 
     h = plot3d(x_d,'k');
     if ~ishold, hold; unhold=true; else unhold=false; end

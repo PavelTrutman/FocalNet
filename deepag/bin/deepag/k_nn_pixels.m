@@ -7,7 +7,7 @@ function k_nn_pixels()
   deepagpaths;
 
   % prepare data
-  load('../../data/paris/correspondences_syntetic.mat');
+  load('../../data/paris/correspondences_synteticKNN.mat');
   
   % properties
   margin = 1/7;

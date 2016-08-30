@@ -19,8 +19,13 @@ To keep track of the changes in the code, the Git tool is used. Data folders are
        - `k_nn_pixels.m`, `k_nn_pixels_generateData.m`: Scripts to compute the error of the k nearest neighbours regressor in the image coordinates space. `_generateData` version is used to generate synthetic data for testing. The generated data are saved in `data/` folder as `correspondences_syntetic.mat`.
        - `nn*`: Scripts with neural network regressors. The scipts differ in the number of non-linear layers. The `_GPU` versions are used to be executed on the GPU.
        - `plotKNN.m`, `plotNN.m`: Scripts to plot and inspect the results from `k_nn*` and `nn*` scripts respectively. Very handy when the scripts are executed on the cluster on which you can not plot anything.
-     - `lib`: Folder with libraries, like `MatonvNet` and utils functions.
+     - `lib`: Folder with libraries, like `MatconvNet` and utils functions.
    - `data/`: Folder containing all data files.
+	 - `RS_paris_i.mat` - original data
+	 - `features_c.mat` is corresponding to correspondences.mat
+	 - `features.mat` doesn't have correspondences file
+	 - `correspondences_synteticKNN` - correspondences generated for efficient KNN
+	 - `correspondences_syntetic` - synthetic correspondences
  - `export/`: Folder with exported images and other documents, usually used in the gDoc with partial results.
  - `logs/`: Folder with log files from batch jobs executed on the cluster
  - `coef_mat_two_focal.m`: Matlab function generating feature vector from seven correspondences as Zuzana sent it.

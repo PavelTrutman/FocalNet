@@ -35,7 +35,7 @@ else % unit tests
     P = KRC2P(K,R,C);
     X = rand(3,1000)-0.5;
     u = h2a(X2u(X,P));
-    op = struct('maxres',1,'smpls',0,'smpln',100,'doLO',false,'cnstr',[]);
+    op = struct('solver','uX2PSolver','maxres',1,'smpls',0,'smpln',100,'doLO',false,'cnstr',[]);
     [Pr,in,e] = uX2PRFit(u,X,struct('K',K),op);
     test = acos(abs((P(:)/vnorm(P(:)))'*(Pr(:)/vnorm(Pr(:)))));
     P = test < [1e-7];

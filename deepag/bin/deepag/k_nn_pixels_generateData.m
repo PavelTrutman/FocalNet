@@ -17,4 +17,4 @@ for i = 1:valSize
   corr_val.u(:, i) = corr_val.u([shuffle + 0; shuffle + 7; shuffle + 14; shuffle + 21], i);
 end
 
-save('../../data/paris/correspondences_syntetic.mat', 'corr_tr', 'corr_val', '-v7.3');
+save('../../data/paris/correspondences_synteticKNN.mat', 'corr_tr', 'corr_val', '-v7.3');

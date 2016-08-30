@@ -138,7 +138,7 @@ if nargin>0
    
    C = [uu1              zeros(size(uu1)) -uu2(:,1)*[1 1 1] uu2(:,1)*(e2(3)-e2(1)) 
         zeros(size(uu1)) uu1              -uu2(:,2)*[1 1 1] uu2(:,1)*(e2(3)-e2(2))]; 
-   %[U,D,a] =           
+   [U,D,a] =           
     
    %% 
     % Compute projection matrices
@@ -152,7 +152,7 @@ if nargin>0
    M1 = K1 * R1 * M1;
    M2 = K2 * R2 * M2;
    
- %else			
+ else			
 
  end
  

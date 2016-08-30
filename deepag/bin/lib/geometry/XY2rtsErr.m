@@ -1,6 +1,4 @@
-% e = XY2rtsErr(E,X)
-%
-% e = ||X{2} - (s*r*X{1} + t)||
+% e = XY2rtsErr(E,X) - e = ||X{2} - (s*r*X{1} + t)||
 %
 % X1 ... 3 x n points
 % X2 ... 3 x n points

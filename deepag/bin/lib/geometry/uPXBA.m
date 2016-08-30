@@ -32,6 +32,7 @@
 %                     102 - fixed pixel size & skew and & first C and R fixed
 %                     103 - intrinsics and the first center and first rotation fixed
 %                     104 - intrinsics and the first and second center and first rotation fixed
+%                     105 - the first camera fixed, the second camera ar, s, x0, y0 fixed, the second f, R, C adjusted
 %                     
 %      op.constant_cameras(i) = 
 %                      1 - camera fixed
@@ -100,6 +101,13 @@ if nargin>0
             for i = 3:ba.ncams
                 ba.fixed_parmask((i-1)*7+1:i*7) = [0 0 1 1 1 1 1]; % only extrinsics
             end
+        case 105 % the first camera fixed, the second camera ar, s, x0, y0 fixed, the second f, R, C adjusted 
+            ba.proj_func = 0;
+            ba.fixed_parmask(1:7)  = [1 1 1 1 1 1 1]; % '[R C fx ar u0 s rd]'
+            ba.fixed_parmask(8:14) = [0 0 0 1 1 1 1]; % '[R C fx ar u0 s rd]'
+            for i = 3:ba.ncams
+                ba.fixed_parmask((i-1)*7+1:i*7) = [0 0 1 1 1 1 1]; % only extrinsics
+            end            
         otherwise
             % all has already been set
     end

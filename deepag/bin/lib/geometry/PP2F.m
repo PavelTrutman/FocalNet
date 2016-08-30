@@ -3,7 +3,7 @@
 % P1, P2 = projection matrices
 % F      = Fundamental matrix F = [P2*null(P1)]_x * P2 * pinv(P1) scaled such that ||F||_F = sqrt(2)*||C2-C1||
 
-% T.Pajdla, pajdla@cmp.felk.cvut.cz
+% T.Pajdla, pajdla@cvut.cz
 % 2015-07-11
 function F = PP2F(P1,P2)
 if all(isfinite(P1(:))) && all(isfinite(P2(:)))

@@ -1,11 +1,11 @@
 % E = E5ptNister(X[,E]) - 5pt Minimal Relative Pose of Two Cameras by D. Nister 
 %
-% E        = essential matrix(ces) celarray
+% E        = essential matrix(ces) celarray (E = R [C_delta]_x)
 % X(1:2,:) = 3 x 5 points in image 1
 % X(3:4,:) = 3 x 5 points in image 2
 
-% T. Pajdla, pajdla@cmp.felk.cvut.cz
-% 25 May 2015
+% T. Pajdla, pajdla@cvut.cz
+% 2016-08-28
 function E = E5ptNister(X,E)
 
 if nargin>0

@@ -1,7 +1,7 @@
 % [P,X,in,e,F,u] = uu2PPXRFit(u,K,op,debug) - calibrated reconstruction from two images
 %
 % u = {u1, u2} with u1, u2 2 x n image projection matrices
-% K = {K1, K2} with 3 x 3 camwra calibration matrices
+% K = {K1, K2} with 3 x 3 camera calibration matrices
 % op = parameters
 %
 %      RANSAC (see ransacfit with E5ptNister model):
@@ -72,7 +72,7 @@ else % unit tests
           0  0 10 10 0   0 10 10 
          10 10 10 10 15 15 15 15];
     X = bsxfun(@minus,X,[5;5;-5]);
-    K = [1000     0  500
+    K = [1000     0   500
               0  1000 500
               0    0   1];
     C1 = [0;0;0];
@@ -161,7 +161,7 @@ else % unit tests
     ouFN = setdiff(oix(2,:),find(~in)); % False Negative Outliers
     ouTN = intersect(setdiff(ix,oix(2,:)),find(in)); % True Negative Outliers
     em = max(e,0.1);
-    %semilogy(ix,em,'-r'); 
+    semilogy(ix,em,'-r'); 
     semilogy(oix(2,:),em(oix(2,:)),'.r');hold;
     semilogy(setdiff(ix,oix(2,:)),em(setdiff(ix,oix(2,:))),'.g');
     semilogy(ix(~in),em(~in),'or'); 
