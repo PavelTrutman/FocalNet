@@ -2,7 +2,7 @@
 %
 % Oleh Rybkin, rybkiole@fel.cvut.cz
 % INRIA, 2016
-function F_generateFeat()
+function F_features_PP()
 
 trSize = 10*1000;
 valSize = 10*1000;
