@@ -7,18 +7,19 @@ deepagpaths;
 
 % prepare data
 clear Xtr Ytr Ntr Xval Yval Nval;
-data = matfile('../../data/paris/features.mat');
+data = matfile('../../data/paris/features_F_synth.mat');
 Xtr = data.tr_coefs;
 Ytr = data.tr_f;
 Ntr = data.tr_norm;
-data_sample = matfile('../../data/paris/features_sample_100k.mat');
+data_sample = matfile('../../data/paris/features_F_synth_sample_10k.mat');
 Xval = data_sample.val_coefs;
 Yval = data_sample.val_f;
 Nval = data_sample.val_norm;
 
 % properties
-k = 5;
+k = 1;
 noise_std = 1/1000;
+noise=true;
 
 % data normalize
 X_mean = mean(Xtr, 2);

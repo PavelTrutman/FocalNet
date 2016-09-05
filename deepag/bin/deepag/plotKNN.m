@@ -4,7 +4,7 @@
 % INRIA, 2016
 
 % load file
-file = 'k_nn_GPU-160725-150925.mat';
+file = 'k_nn-160831-133124.mat';
 load(['results/' file]);
 
 % plot histogram of error
@@ -29,3 +29,4 @@ if exist('val_error_k', 'var')
   title('Histogram of errors to each neighbour.');
   hold off;
 end
+mean(val_error)

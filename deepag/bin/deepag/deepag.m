@@ -89,7 +89,7 @@ function deepag(pst, pdAllt, datasett)
     assignin('base', 'pdAll', pdAll);
   end
   
-  %% Show map of 3D points and cameras centers
+  %% Show map of 3D points and cameras' centers
   if ps.ShowMap
     fprintf('%s: Showing Map: ',ps.Data); tic;
     subfig(2,2,1); hold on
