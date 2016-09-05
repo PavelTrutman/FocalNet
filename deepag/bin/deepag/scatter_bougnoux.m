@@ -1,7 +1,7 @@
 function scatter_bougnoux()
 global fgnb
-n=100;
-%fgnb=getFgnb(n);
+n=10;
+fgnb=getFgnb(n);
 colors=repmat([1 0 0],n,1);
 fgnb1=num2cell(fgnb,2);
 choice=cellfun(@isreal,fgnb1);
@@ -25,11 +25,11 @@ end
 end
 
 function fgnb=getFgnb(n)
-fgnb=zeros(10,2);
+fgnb=zeros(n,2);
 tic();
 for i=1:n
-    temp=FDemo();
+    temp=FDemo(900,1100);
     fgnb(i,:)=temp;
 end
-toc()
+toc();
 end
