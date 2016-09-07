@@ -4,7 +4,7 @@
 % INRIA, 2016
 
 % load file
-file = 'k_nn-160831-133124.mat';
+file = 'k_nn-160906-142446-1K-noise in the u.mat';
 load(['results/' file]);
 
 % plot histogram of error

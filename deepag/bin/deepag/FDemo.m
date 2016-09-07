@@ -3,13 +3,13 @@
 % 1 Jan 2016 - 31 Dec 2016
 % 
 % 
-function fnb = FDemo(f1, f2)
+function fnb = FDemo(f1, f2, points)
     %% Initialize
     deepagpaths;          % set paths to libraries
     ps.Data    = 'paris'; % Data path
     ps.FDemo   = true; % Cameras & F computation demo
     ps.ImNS    = 1.0;   % Image noise ~ N(0,ps.ImNS)
-    ps.plot    = false;   % Image noise ~ N(0,ps.ImNS)
+    ps.plot    = false;  
     deepagInit
     %%
     if ps.FDemo
@@ -17,9 +17,7 @@ function fnb = FDemo(f1, f2)
         % focal lengths
         sc = max(f1,f2);
         % 3D points
-        X = 2*sc*[0 1 1 0 0 1 2 0
-                 0 0 1 1 0 0 1 1
-                 0 0 0 0 1 2 1 2]+repmat([-sc;-sc;2*sc],1,8);
+        X = 2*sc*2*points+repmat([-sc;-sc;2*sc],1,size(points,2));
         % Internal camera calibration     
         K1 = [f1  0    0 
               0   f1   0 
@@ -46,8 +44,8 @@ function fnb = FDemo(f1, f2)
         %toc();
         %tic();
         F = F/norm(F);
-        %Fg = PP2F(P1,P2); % from projection matrices, ground truth
-        %Fg = Fg/norm(Fg);
+        Fg = PP2F(P1,P2); % from projection matrices, ground truth
+        Fg = Fg/norm(Fg);
         if ps.plot
             % Plot cameras & 3D points
             subfig(3,4,1);
@@ -71,8 +69,8 @@ function fnb = FDemo(f1, f2)
         % Compute the difference in normalized image coordinates
         Fn = inv(A{2})'*F*inv(A{1});
         Fn = Fn/norm(Fn);
-        %Fgn = inv(A{2})'*Fg*inv(A{1});
-        %Fgn = Fgn/norm(Fgn);
+        Fgn = inv(A{2})'*Fg*inv(A{1});
+        Fgn = Fgn/norm(Fgn);
         if ps.plot
             % Plot the difference
             subfig(3,4,6);
@@ -81,17 +79,17 @@ function fnb = FDemo(f1, f2)
         end
         % Form the feature vector and the ground truth feature vector
         f = Fn(:)/norm(F,'fro'); [~,mi] = max(abs(f)); f = f*sign(f(mi));
-        %fg = Fgn(:)/norm(Fg,'fro'); [~,mi] = max(abs(fg)); fg = fg*sign(fg(mi));
+        fg = Fgn(:)/norm(Fg,'fro'); [~,mi] = max(abs(fg)); fg = fg*sign(fg(mi));
         if ps.plot
             subfig(3,4,7);
             plot(1:length(f),f+1,'.-',1:length(fg),fg+1,'.-g');axis tight;xlabel('element');ylabel('value');title('b - f, g - fg');
         end
         % Bougnoux formula aplied on normalized data and recomputed to original data
-        %ff = F2f1f2(F);
+        ff = F2f1f2(F);
         fn = F2f1f2(Fn);
-        %fgn = F2f1f2(Fgn);
+        fgn = F2f1f2(Fgn);
         fnb = fn*diag([1/A{1}(1) 1/A{2}(1)]);
-        %fgnb = fgn*diag([1/A{1}(1) 1/A{2}(1)]);
+        fgnb = fgn*diag([1/A{1}(1) 1/A{2}(1)]);
         if ps.plot
             % plot estimated f's
             plot([1 2],[[f1 f2];ff;fnb]','.','markersize',20);

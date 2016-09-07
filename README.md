@@ -24,6 +24,8 @@ To keep track of the changes in the code, the Git tool is used. Data folders are
 	 - `RS_paris_i.mat` - original data
 	 - `features_c.mat` is corresponding to correspondences.mat
 	 - `features.mat` doesn't have correspondences file
+	 - `features_F*` - feature vector is fundamental matrix
+	   - `*synth*` - no noise, synthentic data
 	 - `correspondences_synteticKNN` - correspondences generated for efficient KNN
 	 - `correspondences_syntetic` - synthetic correspondences
  - `export/`: Folder with exported images and other documents, usually used in the gDoc with partial results.
