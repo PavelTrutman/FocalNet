@@ -1,3 +1,4 @@
+
 % R = a2r(v,a) - rotation matrix from axis-angle representation
 %
 % v = rotation axis 

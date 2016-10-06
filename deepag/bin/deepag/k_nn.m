@@ -5,13 +5,16 @@
 
 deepagpaths;
 
+%val_file='../../data/paris/features_F_nsynthrep.mat';
+%tr_file='../../data/paris/features_F_nsynthrep_sample_1K.mat';
+
 % prepare data
 clear Xtr Ytr Ntr Xval Yval Nval;
-data = matfile('../../data/paris/features_F_nsynth.mat');
+data = matfile(val_file);
 Xtr = data.tr_coefs;
 Ytr = data.tr_f;
 Ntr = data.tr_norm;
-data_sample = matfile('../../data/paris/features_F_nsynth_sample.mat');
+data_sample = matfile(tr_file);
 Xval = data_sample.val_coefs;
 Yval = data_sample.val_f;
 Nval = data_sample.val_norm;

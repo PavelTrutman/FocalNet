@@ -6,6 +6,7 @@
 *.m~
 *.mex*
 *.asv
+*.fig
 
 # Folder with logs
 logs/

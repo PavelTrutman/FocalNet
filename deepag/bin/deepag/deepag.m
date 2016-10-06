@@ -466,12 +466,12 @@ function [coefsOut, uOut] = prepare(r, dataset, cams, perCameraPair, pointsNum, 
   uOut = zeros(pointsNum*4, perCameraPair);
   while k <= perCameraPair
     rk = randperm(size(XmaskCommon, 2), pointsNum);
-    coefs = two_focal(u1(:, datasetCam1.umask(idx1(rk)))', u2(:, datasetCam2.umask(idx2(rk)))');
+    coefs = get_features(u1(:, datasetCam1.umask(idx1(rk)))', u2(:, datasetCam2.umask(idx2(rk)))');
     if any(isnan(coefs))
       continue;
     end
     coefsOut(:, k) = coefs;
-    uOut(:, k) = [reshape(u1(:, datasetCam1.umask(idx1(rk)))', [], 1); reshape(u2(:, datasetCam2.umask(idx2(rk)))', [], 1)];
+    uOut(:, k) = [reshape(u1(:, datasetCam1.umask(idx1(rk))), [], 1); reshape(u2(:, datasetCam2.umask(idx2(rk))), [], 1)];
     k = k + 1;
   end
 end

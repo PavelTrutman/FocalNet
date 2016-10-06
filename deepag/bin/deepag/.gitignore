@@ -1,2 +1,5 @@
-# do not track folder with results
+# do not track folders with results
 results/
+bougnoux/
+old_bougnoux_scatter/
+bougnoux_var/
